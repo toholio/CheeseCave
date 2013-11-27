@@ -31,9 +31,11 @@ RTC_DS1307 RTC;
 #define FRIDGE_WAIT 60
 #define HUMIDIFIER_WAIT 10
 
-// I2C relay numbers and last state:
-#define FRIDGE_RELAY 1
-#define HUMIDIFIER_RELAY 2
+// I2C relay command numbers and last state:
+#define FRIDGE_RELAY               1
+#define FRIDGE_RELAY_TIMED_OFF     4
+#define HUMIDIFIER_RELAY           2
+#define HUMIDIFIER_RELAY_TIMED_OFF 7
 bool fridgeState = false;
 bool humidifierState = false;
 
@@ -75,6 +77,23 @@ void SetRelay( int relay, bool state )
   Wire.beginTransmission( 0x31 );
   Wire.write( relay );
   Wire.write( state ? 1 : 0 );
+  Wire.endTransmission();
+}
+
+void SetRelaysTimedOff()
+{
+  // Delays are given as two byte multiples of 200mS.
+  
+  Wire.beginTransmission( 0x31 );
+  Wire.write( FRIDGE_RELAY_TIMED_OFF );
+  Wire.write( 0x1 );
+  Wire.write( 0x2c );
+  Wire.endTransmission();
+  
+  Wire.beginTransmission( 0x31 );
+  Wire.write( HUMIDIFIER_RELAY_TIMED_OFF );
+  Wire.write( 0x1 );
+  Wire.write( 0x2c );
   Wire.endTransmission();
 }
 
@@ -238,5 +257,8 @@ void loop() {
     SetRelay( HUMIDIFIER_RELAY, humidifierState );
     lastHumidifierTime = RTC.now();
   }
+  
+  // Push back the automatic shutdown of the relays.
+  SetRelaysTimedOff();
 }
 
